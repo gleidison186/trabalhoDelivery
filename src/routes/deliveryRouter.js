@@ -9,9 +9,9 @@ deliveryRouter.get("/listAllDelivery", auth, deliveryController.listAllDelivery)
 
 deliveryRouter.get("/searchDelivery", auth, deliveryController.searchDelivery);
 
-deliveryRouter.get("/searchDeliveryByMotoboy/:cpf", auth, deliveryController.searchDeliveryByMotoboy);
+deliveryRouter.get("/searchDeliveryByMotoboy/:id", auth, deliveryController.searchDeliveryByMotoboy);
 
-deliveryRouter.put("/updateDelivery/:id", auth, deliveryController.updateDelivery);
+deliveryRouter.put("/updateDelivery", auth, deliveryController.updateDelivery);
 
 deliveryRouter.delete("/deleteDelivery/:id", auth, deliveryController.deleteDelivery);
 

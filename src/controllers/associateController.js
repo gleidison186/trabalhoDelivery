@@ -163,43 +163,109 @@ module.exports = {
         const totalDeliveries = await Delivery.count({
             where: { associateId: req.associateId }
         })
-        // Corrigir Model depois
-        const totalMotoboys = await Motoboy.count()
+        const totalMotoboys = await Motoboy.count({
+            where: { associateId: req.associateId }
+        })
         return res.status(200).json({ totalClients, totalDeliveries, totalMotoboys });
     },
 
     // Top 5 clientes que solicitaram mais entregas
     async topFiveClients(req, res) {
         const topClients = await Client.findAll({
+            attributes: ['name', 'cnpj'],
             where: { associateId: req.associateId },
-            include:[{
+            include: {
                 model: Delivery,
-            }]
+                attributes: ['clientId', [Sequelize.fn('COUNT', Sequelize.col('clientId')), 'Entregas'],],
+                group: 'clientId',
+                order: [
+                    'Entregas', 'DESC'
+                ],
+            },
+            limit: 5
         })
-        console.log(topClients)
-        return res.status(200).json({ msg: "OK" });
+        return res.status(200).json({ topClients });
     },
 
     // Top 5  motoboys  que  realizaram  mais  entregas
     async topFiveMotoboys(req, res) {
-        return res.status(200).json({ msg: "OK" });
+        const topMotoboys = await Motoboy.findAll({
+            attributes: ['name', 'cpf'],
+            where: { associateId: req.associateId },
+            include: {
+                model: Delivery,
+                attributes: ['motoboyId', [Sequelize.fn('COUNT', Sequelize.col('motoboyId')), 'Entregas'],],
+                group: 'motoboyId',
+                order: [
+                    'Entregas', 'DESC'
+                ],
+            },
+            limit: 5
+        })
+        return res.status(200).json({ topMotoboys });
     },
 
     // Porcentagem  de  entregas realizadas  até  o  momento
     async deliveriesMade(req, res) {
-        return res.status(200).json({ msg: "OK" });
+        const deliveries = await Delivery.count({
+            where: { associateId: req.associateId }
+        })
+        const { Op } = require("sequelize");
+        const deliveriesM = await Delivery.count({
+            where: { 
+                [Op.and]: [{ associateId: req.associateId }, { status: "Realizada" }]
+            }
+        }).catch((error) => {
+            return res.status(500).json({ msg: "Falha na conexão " + error });
+        })
+        if (deliveriesM) {
+            if (deliveriesM == "") {
+                return res.status(404).json({ msg: "Não foram encontradas entregas." });
+            } else {
+                const percent = (deliveriesM * 100) / deliveries;
+                return res.status(200).json({percent});
+            }
+        } else {
+            return res.status(404).json({ msg: "Não foram encontradas entregas." });
+        }
     },
 
     // Porcentagem  de  entregas  pendentes  até  o momento
     async pendingDeliveries(req, res) {
-        return res.status(200).json({ msg: "OK" });
+        const deliveries = await Delivery.count({
+            where: { associateId: req.associateId }
+        })
+        const { Op } = require("sequelize");
+        const pDeliveries = await Delivery.count({
+            where: { 
+                [Op.and]: [{ associateId: req.associateId }, { status: "Pendente" }]
+            }
+        }).catch((error) => {
+            return res.status(500).json({ msg: "Falha na conexão " + error });
+        })
+        if (pDeliveries) {
+            if (pDeliveries == "") {
+                return res.status(404).json({ msg: "Não foram encontradas entregas." });
+            } else {
+                const percent = (pDeliveries * 100) / deliveries;
+                return res.status(200).json({percent});
+            }
+        } else {
+            return res.status(404).json({ msg: "Não foram encontradas entregas." });
+        }
     },
 
     // Relatório financeiro retornando indicador do valor total em Reais 
-    // cobradonas entregas realizadas, a porcentagem a ser paga para os 
+    // cobrado nas entregas realizadas, a porcentagem a ser paga para os 
     // motoboys (considerar 70% do valor da entrega) e a porcentagem do 
     // associado (considerar 30% do valor da entrega).
     async financialReport(req, res) {
-        return res.status(200).json({ msg: "OK" });
+        const { Op } = require("sequelize");
+        const totalValue = await Delivery.sum('value', {
+            [Op.and]: [{ associateId: req.associateId }, { status: "Realizada" }]
+        })
+        const motoboyValue = totalValue * 0.7;
+        const associateValue = totalValue * 0.3;
+        return res.status(200).json({ totalValue, motoboyValue, associateValue });
     },
 }
