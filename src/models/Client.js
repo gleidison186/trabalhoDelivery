@@ -6,7 +6,7 @@ class Client extends Sequelize.Model {
 			{
 				name: Sequelize.STRING,
 				cnpj: Sequelize.STRING,
-                adress: Sequelize.STRING,
+                address: Sequelize.STRING,
 			},
 			{
 				sequelize,

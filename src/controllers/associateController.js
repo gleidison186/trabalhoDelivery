@@ -1,6 +1,9 @@
 const util = require("../util/functions");
 const Sequelize = require("sequelize");
 const Associate = require("../models/Associate");
+const Client = require("../models/Client")
+const Delivery = require("../models/Delivery")
+const Motoboy = require("../models/Motoboy")
 const bcrypt = require("bcryptjs");
 
 module.exports = {
@@ -18,7 +21,7 @@ module.exports = {
                 return res.status(404).json({ msg: "Usuário ou senha inválidos" });
             } else {
                 if (bcrypt.compareSync(password, associate.password)) {
-                    const token = util.generateToken(associate.id)
+                    const token = util.generateToken(associate.id, "associate")
                     return res.status(200).json({ msg: "Autenticado com sucesso", token });
                 } else {
                     return res.status(404).json({ msg: "Usuário ou senha inválidos" });
@@ -84,11 +87,55 @@ module.exports = {
     },
 
     async searchAssociate(req, res) {
-        return res.status(200).json({ msg: "OK" });
+        const associateCnpj = req.params.cnpj;
+        if (!associateCnpj || associateCnpj === "") {
+            return res.status(400).json({ msg: "CNPJ do associado vazio" });
+        } else {
+            const associate = await Associate.findOne({
+                where: { cnpj: associateCnpj }
+            })
+            if (!associate) {
+                return res.status(400).json({ msg: "Associado não encontrado" });
+            } else {
+                return res.status(200).json(associate)
+            }
+        }
     },
 
     async updateAssociate(req, res) {
-        return res.status(200).json({ msg: "OK" });
+        const associateId = req.associateId;
+        const associate = req.body;
+        const associateExists = await Associate.findByPk(associateId);
+        if (!associateExists) {
+            return res.status(400).json({ msg: "Associado não encontrado" });
+        } else {
+            if (associate.cnpj) {
+                const associateDuplicated = await Associate.findOne({
+                    where: { cnpj: associate.cnpj }
+                })
+                console.log(associateDuplicated)
+                if (associateDuplicated) {
+                    return res.status(400).json({ msg: "CNPJ já usado por outro associado" });
+                }
+            }
+            if (associate.password) {
+                const passwordValid = util.passwordValidation(associate.password);
+                if (passwordValid !== "OK") {
+                    return res.status(400).json({ msg: passwordValid });
+                }
+                const salt = bcrypt.genSaltSync(12);
+                const hash = bcrypt.hashSync(associate.password, salt);
+                associate.password = hash;
+            }
+            if (associate.name || associate.cnpj || associate.password || associate.address) {
+                await Associate.update(associate, {
+                    where: { id: associateId }
+                })
+                return res.status(200).json({ msg: "Associado atualizado com sucesso" });
+            } else {
+                return res.status(400).json({ msg: "Campos obrigatórios não preenchidos." });
+            }
+        }
     },
 
     async deleteAssociate(req, res) {
@@ -108,13 +155,28 @@ module.exports = {
 
     // REALTÓRIOS DO ASSOCIADO
 
-    // Relatório administrativoretornando à quantidade total de clientes, motoboys e entregas cadastradas
+    // Relatório administrativo retornando à quantidade total de clientes, motoboys e entregas cadastradas
     async generalReport(req, res) {
-        return res.status(200).json({ msg: "OK" });
+        const totalClients = await Client.count({
+            where: { associateId: req.associateId }
+        })
+        const totalDeliveries = await Delivery.count({
+            where: { associateId: req.associateId }
+        })
+        // Corrigir Model depois
+        const totalMotoboys = await Motoboy.count()
+        return res.status(200).json({ totalClients, totalDeliveries, totalMotoboys });
     },
 
     // Top 5 clientes que solicitaram mais entregas
     async topFiveClients(req, res) {
+        const topClients = await Client.findAll({
+            where: { associateId: req.associateId },
+            include:[{
+                model: Delivery,
+            }]
+        })
+        console.log(topClients)
         return res.status(200).json({ msg: "OK" });
     },
 

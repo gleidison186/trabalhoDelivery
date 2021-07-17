@@ -10,6 +10,10 @@ function verifyJWT(req, res, next) {
       return res.status(401).json({ msg: "Falha na autenticação do token" });
     }
     req.associateId = decoded.id;
+    req.type = decoded.type;
+    if (req.type != "associate"){
+      return res.status(401).json({ msg: "Usuário sem Permissão" });
+    }
     next();
   });
 }

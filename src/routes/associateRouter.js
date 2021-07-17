@@ -11,7 +11,7 @@ associateRouter.get("/listAllAssociate", auth, associateController.listAllAssoci
 
 associateRouter.get("/searchAssociate/:cnpj", auth, associateController.searchAssociate);
 
-associateRouter.put("/updateAssociate/:id", auth, associateController.updateAssociate);
+associateRouter.put("/updateAssociate", auth, associateController.updateAssociate);
 
 associateRouter.delete("/deleteAssociate/:id", auth, associateController.deleteAssociate);
 
