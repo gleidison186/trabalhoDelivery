@@ -13,7 +13,7 @@ motoboyRouter.get("/listAllMotoboy", authAssociate, motoboyController.listAllMot
 
 motoboyRouter.get("/searchMotoboy/:cpf", authAssociate, motoboyController.searchMotoboy);
 
-motoboyRouter.put("/updateMotoboy", authAssociate, motoboyController.updateMotoboy);
+motoboyRouter.put("/updateMotoboy/:id", authAssociate, motoboyController.updateMotoboy);
 
 motoboyRouter.delete("/deleteMotoboy/:id", authAssociate, motoboyController.deleteMotoboy);
 
