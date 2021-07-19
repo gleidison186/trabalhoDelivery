@@ -9,13 +9,14 @@ const bcrypt = require("bcryptjs");
 module.exports = {
     async authentication(req, res) {
         const cnpj = req.body.cnpj;
+        const cnpjValidado = cnpj.replace(/[^\d]+/g, '');
         const password = req.body.password;
-        if (!cnpj || !password) {
+        if (!cnpjValidado || !password) {
             return res.status(400).json({ msg: "Campos obrigatórios vazios" });
         }
         try {
             const associate = await Associate.findOne({
-                where: { cnpj },
+                where: { cnpj: cnpjValidado },
             });
             if (!associate) {
                 return res.status(404).json({ msg: "Usuário ou senha inválidos" });
@@ -33,10 +34,19 @@ module.exports = {
     },
 
     async newAssociate(req, res) {
+        if (!req.headers.user || req.headers.user != 'ACP') {
+            return res.status(401).json({ msg: "Somente ACP tem Permissão a esse metodo" });
+        }
         const { name, cnpj, password, address } = req.body;
         if (!name || !cnpj || !password) {
             return res.status(400).json({ msg: "Dados obrigatórios não foram preenchidos." })
         }
+
+        if (!util.cnpjValidation(cnpj)){
+            return res.status(400).json({ msg: "CNPJ Inválido" })
+        }
+
+        const cnpjValidado = cnpj.replace(/[^\d]+/g, '');
 
         const passwordValid = util.passwordValidation(password);
 
@@ -45,7 +55,7 @@ module.exports = {
         }
 
         const isAssociateNew = await Associate.findOne({
-            where: { cnpj },
+            where: { cnpj: cnpjValidado },
         });
 
         if (isAssociateNew) {
@@ -55,7 +65,7 @@ module.exports = {
             const hash = bcrypt.hashSync(password, salt);
             const associate = await Associate.create({
                 name,
-                cnpj,
+                cnpj: cnpjValidado,
                 password: hash,
                 address,
             }).catch((error) => {
@@ -72,6 +82,9 @@ module.exports = {
     },
 
     async listAllAssociate(req, res) {
+        if (!req.headers.user || req.headers.user != 'ACP') {
+            return res.status(401).json({ msg: "Somente ACP tem Permissão a esse metodo" });
+        }
         const associates = await Associate.findAll().catch((error) => {
             return res.status(500).json({ msg: "Falha na conexão " + error });
         })
@@ -87,12 +100,16 @@ module.exports = {
     },
 
     async searchAssociate(req, res) {
+        if (!req.headers.user || req.headers.user != 'ACP') {
+            return res.status(401).json({ msg: "Somente ACP tem Permissão a esse metodo" });
+        }
         const associateCnpj = req.params.cnpj;
-        if (!associateCnpj || associateCnpj === "") {
+        const cnpjValidado = associateCnpj.replace(/[^\d]+/g, '');
+        if (!cnpjValidado || cnpjValidado === "") {
             return res.status(400).json({ msg: "CNPJ do associado vazio" });
         } else {
             const associate = await Associate.findOne({
-                where: { cnpj: associateCnpj }
+                where: { cnpj: cnpjValidado }
             })
             if (!associate) {
                 return res.status(400).json({ msg: "Associado não encontrado" });
@@ -103,7 +120,16 @@ module.exports = {
     },
 
     async updateAssociate(req, res) {
+        if (!req.headers.user || req.headers.user != 'ACP') {
+            return res.status(401).json({ msg: "Somente ACP tem Permissão a esse metodo" });
+        }
         const associate = req.body;
+        if (!util.cnpjValidation(associate.cnpj)){
+            return res.status(400).json({ msg: "CNPJ Inválido" })
+        }
+
+        associate.cnpj = associate.cnpj.replace(/[^\d]+/g, '');
+        
         const associateExists = await Associate.findByPk(associate.id);
         if (!associateExists) {
             return res.status(400).json({ msg: "Associado não encontrado" });
@@ -138,6 +164,9 @@ module.exports = {
     },
 
     async deleteAssociate(req, res) {
+        if (!req.headers.user || req.headers.user != 'ACP') {
+            return res.status(401).json({ msg: "Somente ACP tem Permissão a esse metodo" });
+        }
         const associateId = req.params.id;
         const deletedAssociate = await Associate.destroy({
             where: { id: associateId },
@@ -170,16 +199,14 @@ module.exports = {
 
     // Top 5 clientes que solicitaram mais entregas
     async topFiveClients(req, res) {
-        const topClients = await Client.findAll({
-            attributes: ['name', 'cnpj'],
+        const topClients = await Delivery.findAll({
             where: { associateId: req.associateId },
+            attributes: ['clientId', [Sequelize.fn('COUNT', Sequelize.col('clientId')), 'Entregas'],],
+            group: 'clientId',
+            order: Sequelize.literal('Entregas DESC'),
             include: {
-                model: Delivery,
-                attributes: ['clientId', [Sequelize.fn('COUNT', Sequelize.col('clientId')), 'Entregas'],],
-                group: 'clientId',
-                order: [
-                    'Entregas', 'DESC'
-                ],
+                model: Client,
+                attributes: ['name', 'cnpj']
             },
             limit: 5
         })
@@ -188,16 +215,14 @@ module.exports = {
 
     // Top 5  motoboys  que  realizaram  mais  entregas
     async topFiveMotoboys(req, res) {
-        const topMotoboys = await Motoboy.findAll({
-            attributes: ['name', 'cpf'],
+        const topMotoboys = await Delivery.findAll({
             where: { associateId: req.associateId },
+            attributes: ['motoboyId', [Sequelize.fn('COUNT', Sequelize.col('motoboyId')), 'Entregas'],],
+            group: 'motoboyId',
+            order: Sequelize.literal('Entregas DESC'),
             include: {
-                model: Delivery,
-                attributes: ['motoboyId', [Sequelize.fn('COUNT', Sequelize.col('motoboyId')), 'Entregas'],],
-                group: 'motoboyId',
-                order: [
-                    'Entregas', 'DESC'
-                ],
+                model: Motoboy,
+                attributes: ['name', 'cpf']
             },
             limit: 5
         })
@@ -211,7 +236,7 @@ module.exports = {
         })
         const { Op } = require("sequelize");
         const deliveriesM = await Delivery.count({
-            where: { 
+            where: {
                 [Op.and]: [{ associateId: req.associateId }, { status: "Realizada" }]
             }
         }).catch((error) => {
@@ -222,7 +247,7 @@ module.exports = {
                 return res.status(404).json({ msg: "Não foram encontradas entregas." });
             } else {
                 const percent = (deliveriesM * 100) / deliveries;
-                return res.status(200).json({percent});
+                return res.status(200).json({ percent });
             }
         } else {
             return res.status(404).json({ msg: "Não foram encontradas entregas." });
@@ -236,7 +261,7 @@ module.exports = {
         })
         const { Op } = require("sequelize");
         const pDeliveries = await Delivery.count({
-            where: { 
+            where: {
                 [Op.and]: [{ associateId: req.associateId }, { status: "Pendente" }]
             }
         }).catch((error) => {
@@ -247,7 +272,7 @@ module.exports = {
                 return res.status(404).json({ msg: "Não foram encontradas entregas." });
             } else {
                 const percent = (pDeliveries * 100) / deliveries;
-                return res.status(200).json({percent});
+                return res.status(200).json({ percent });
             }
         } else {
             return res.status(404).json({ msg: "Não foram encontradas entregas." });

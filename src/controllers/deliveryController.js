@@ -1,21 +1,42 @@
 const Delivery = require("../models/Delivery");
+const Motoboy = require("../models/Motoboy");
+const Client = require("../models/Client");
 const Sequelize = require("sequelize");
 
 
 module.exports = {
     async newDelivery(req, res) {
-        const { clientId, motoboyId, description } = req.body;
+        const { clientId, motoboyId, description, value } = req.body;
         const associateId = req.associateId;
         const status = "Pendente";
-        if (!clientId || !motoboyId || !description) {
+        if (!clientId || !motoboyId || !description || !value) {
             return res.status(400).json({ msg: "Dados obrigatórios não foram preenchidos." });
         }
+
+        const { Op } = require("sequelize");
+        const motoboyExists = await Motoboy.findOne({
+            where: {  [Op.and]: [{ associateId: req.associateId }, { id:  motoboyId }] }
+        });
+
+        if (!motoboyExists) {
+            return res.status(400).json({ msg: "Motoboy não encontrado" });
+        }
+
+        const clientExists = await Client.findOne({
+            where: {  [Op.and]: [{ associateId: req.associateId }, { id:  clientId }] }
+        })
+
+        if (!clientExists) {
+            return res.status(400).json({ msg: "Cliente não encontrado" });
+        }
+
         const delivery = await Delivery.create({
             associateId,
             clientId,
             motoboyId,
             description,
-            status
+            status,
+            value
         }).catch((error) => {
             return res.status(500).json({ msg: "Não foi possível inserir os dados " + error })
         })
@@ -119,9 +140,9 @@ module.exports = {
             return res.status(500).json({ msg: "Falha na conexão. " + error })
         })
 
-        if (deleteDelivery != 0){
+        if (deleteDelivery != 0) {
             return res.status(200).json({ msg: "Entrega Excluída com Sucesso" })
-        }else{
+        } else {
             return res.status(404).json({ msg: "Entrega não encontrada" })
         }
     },
@@ -130,7 +151,7 @@ module.exports = {
     async deliveriesMade(req, res) {
         const { Op } = require("sequelize");
         const deliveries = await Delivery.findAll({
-            where: { 
+            where: {
                 [Op.and]: [{ associateId: req.associateId }, { status: "Realizada" }]
             }
         }).catch((error) => {
@@ -151,7 +172,7 @@ module.exports = {
     async pendingDeliveries(req, res) {
         const { Op } = require("sequelize");
         const deliveries = await Delivery.findAll({
-            where: { 
+            where: {
                 [Op.and]: [{ associateId: req.associateId }, { status: "Pendente" }]
             }
         }).catch((error) => {

@@ -30,11 +30,16 @@ module.exports = {
         }
     },
 
-    async newMotoboy(req, res){
+    async newMotoboy(req, res) {
         const idAssociateLogin = req.associateId;
 
         const { name, cpf, password, phone } = req.body;
-        if (!name || !cpf || !password) {
+        if (!util.cpfValidation(cpf)) {
+            return res.status(400).json({ msg: "CPF Inválido" })
+        }
+        const cpfValidado = cpf.replace(/[^\d]+/g, '');
+
+        if (!name || !cpfValidado || !password || !phone) {
             return res.status(400).json({ msg: "Dados obrigatórios não foram preenchidos." })
         }
 
@@ -45,7 +50,7 @@ module.exports = {
         }
 
         const isMotoboyNew = await Motoboy.findOne({
-            where: { cpf },
+            where: { cpf: cpfValidado },
         });
 
         if (isMotoboyNew) {
@@ -56,7 +61,7 @@ module.exports = {
             const motoboy = await Motoboy.create({
                 associateId: idAssociateLogin,
                 name,
-                cpf,
+                cpf: cpfValidado,
                 password: hash,
                 phone,
             }).catch((error) => {
@@ -72,7 +77,7 @@ module.exports = {
         }
     },
 
-    async listAllMotoboy(req, res){
+    async listAllMotoboy(req, res) {
         const idAssociateLogin = req.associateId;
 
         const motoboys = await Motoboy.findAll({
@@ -91,7 +96,7 @@ module.exports = {
         }
     },
 
-    async searchMotoboy(req, res){
+    async searchMotoboy(req, res) {
         const idAssociateLogin = req.associateId;
 
         const motoboyCPF = req.params.cpf;
@@ -104,27 +109,31 @@ module.exports = {
             if (!motoboy) {
                 return res.status(400).json({ msg: "Motoboy não encontrado" });
             } else {
-                if(motoboy.associateId == idAssociateLogin){
+                if (motoboy.associateId == idAssociateLogin) {
                     return res.status(200).json(motoboy)
-                }else{
+                } else {
                     return res.status(400).json({ msg: "Você não tem permissão para acessar os dados deste motoboy pois ele não possui relação com associado logado" });
                 }
             }
         }
     },
 
-    async updateMotoboy(req, res){
+    async updateMotoboy(req, res) {
         const idAssociateLogin = req.associateId;
 
         const motoboy = req.body;
         const idMotoboyAlterado = req.params.id
         const motoboyExists = await Motoboy.findOne({
-                where: { id: idMotoboyAlterado }
+            where: { id: idMotoboyAlterado }
         });
+        if (!util.cpfValidation(motoboy.cpf) && motoboy.cpf) {
+            return res.status(400).json({ msg: "CPF Inválido" })
+        }
+        motoboy.cpf = motoboy.cpf.replace(/[^\d]+/g, '');
         if (!motoboyExists) {
             return res.status(400).json({ msg: "Motoboy não encontrado" });
         } else {
-            if(motoboyExists.associateId == idAssociateLogin){
+            if (motoboyExists.associateId == idAssociateLogin) {
                 if (motoboy.cpf && motoboy.cpf !== motoboyExists.cpf) {
                     const motoboyDuplicated = await Motoboy.findOne({
                         where: { cpf: motoboy.cpf }
@@ -151,13 +160,13 @@ module.exports = {
                 } else {
                     return res.status(400).json({ msg: "Campos obrigatórios não preenchidos." });
                 }
-            }else{
+            } else {
                 return res.status(400).json({ msg: "Você não tem permissão para alterar os dados deste motoboy pois ele não possui relação com associado logado" });
             }
         }
     },
 
-    async deleteMotoboy(req, res){
+    async deleteMotoboy(req, res) {
         const idAssociateLogin = req.associateId;
 
         const motoboyId = req.params.id;
@@ -168,32 +177,32 @@ module.exports = {
             return res.status(500).json({ msg: "Falha na conexão " + error });
         });
 
-        if(motoboy.associateId == idAssociateLogin){
+        if (motoboy.associateId == idAssociateLogin) {
             const deletedMotoboy = await Motoboy.destroy({
                 where: { id: motoboyId, associateId: idAssociateLogin },
             }).catch((error) => {
                 return res.status(500).json({ msg: "Falha na conexão " + error });
             })
-    
+
             if (deletedMotoboy != 0) {
                 return res.status(200).json({ msg: "Motoboy excluído com sucesso" });
             } else {
                 return res.status(404).json({ msg: "Motoboy não encontrado" });
             }
-        }else{
+        } else {
             return res.status(404).json({ msg: "Você não tem permissão para excluir este motoboy" });
         }
 
     },
 
     // Lista de suas entregas realizadas
-    async deliveriesMade(req, res){
+    async deliveriesMade(req, res) {
         const idMotoboyLogin = req.motoboyId;
 
         const { Op } = require("sequelize");
         const deliveries = await Delivery.findAll({
-            where: { 
-                [Op.and]: [{motoboyId: idMotoboyLogin}, { status: "Realizada" }]
+            where: {
+                [Op.and]: [{ motoboyId: idMotoboyLogin }, { status: "Realizada" }]
             }
         }).catch((error) => {
             return res.status(500).json({ msg: "Falha na conexão " + error });
@@ -210,13 +219,13 @@ module.exports = {
     },
 
     // Lista de suas entregas pendentes
-    async pendingDeliveries(req, res){
+    async pendingDeliveries(req, res) {
         const idMotoboyLogin = req.motoboyId;
 
         const { Op } = require("sequelize");
         const deliveries = await Delivery.findAll({
-            where: { 
-                [Op.and]: [{motoboyId: idMotoboyLogin}, { status: "Pendente" }]
+            where: {
+                [Op.and]: [{ motoboyId: idMotoboyLogin }, { status: "Pendente" }]
             }
         }).catch((error) => {
             return res.status(500).json({ msg: "Falha na conexão " + error });
@@ -235,12 +244,12 @@ module.exports = {
     // Relatório financeiro retornando indicador do 
     // valor total em Reais cobrado nas entregas realizadas 
     // e sua porcentagem a ser paga (considerar 70% do valor da entrega)
-    async financialReport(req, res){
+    async financialReport(req, res) {
         const { Op } = require("sequelize");
         const totalValue = await Delivery.sum('value', {
             [Op.and]: [{ motoboyId: req.motoboyId }, { status: "Realizada" }]
         })
         const motoboyValue = totalValue * 0.7;
-        return res.status(200).json({ "ValorTotal": totalValue, "ValorMotoboy": motoboyValue});
+        return res.status(200).json({ "ValorTotal": totalValue, "ValorMotoboy": motoboyValue });
     }
 }

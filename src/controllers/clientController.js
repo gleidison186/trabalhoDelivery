@@ -14,10 +14,17 @@ module.exports = {
         //Pegando o Associate ID
         const associateId = req.associateId;
 
+        
+        if (!util.cnpjValidation(cnpj)){
+            return res.status(400).json({ msg: "CNPJ Inválido" })
+        }
+
+        const cnpjValidado = cnpj.replace(/[^\d]+/g, '');
+
         //Verificando se já existe um cliente
         try {
             const client = await Client.findOne({
-                where: { cnpj },
+                where: { cnpj: cnpjValidado },
             });
             //Se cliente for nullo retorna true, então verificar se ele retorna falso
             if (client) {
@@ -26,7 +33,7 @@ module.exports = {
                 const cliente = await Client.create({
                     associateId,
                     name,
-                    cnpj,
+                    cnpj: cnpjValidado,
                     address,
                 }).catch((error) => {
                     return res.status(500).json({ msg: "Não foi possível inserir os dados " + error });
@@ -89,6 +96,12 @@ module.exports = {
         if (!client.id) {
             return res.status(400).json({ msg: "ID de cliente obrigatório no corpo da requisição" });
         }
+
+        if (!util.cnpjValidation(client.cnpj) && client.cnpj){
+            return res.status(400).json({ msg: "CNPJ Inválido" })
+        }
+
+        client.cnpj = client.cnpj.replace(/[^\d]+/g, '');
 
         const clientExists = await Client.findOne({
             where: { id: client.id }
