@@ -96,7 +96,7 @@ module.exports = {
     // Somente entregas pendentes são atualizadas
     async updateDelivery(req, res) {
         const delivery = req.body;
-        if (!delivery.id || !delivery.value) {
+        if (!delivery.id) {
             return res.status(400).json({ msg: "Dados obrigatórios não preenchidos." })
         }
         const { Op } = require("sequelize");
