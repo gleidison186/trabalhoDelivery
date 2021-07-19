@@ -9,7 +9,7 @@ associateRouter.post("/newAssociate", associateController.newAssociate);
 
 associateRouter.get("/listAllAssociate", auth, associateController.listAllAssociate);
 
-associateRouter.get("/searchAssociate/:cnpj", auth, associateController.searchAssociate);
+associateRouter.get("/searchAssociate/:cnpj", associateController.searchAssociate);
 
 associateRouter.put("/updateAssociate", auth, associateController.updateAssociate);
 

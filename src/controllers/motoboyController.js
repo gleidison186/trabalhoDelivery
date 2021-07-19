@@ -162,7 +162,7 @@ module.exports = {
 
         const motoboyId = req.params.id;
 
-        const motoboy = await Delivery.findOne({
+        const motoboy = await Motoboy.findOne({
             where: { id: motoboyId }
         }).catch((error) => {
             return res.status(500).json({ msg: "Falha na conexão " + error });
