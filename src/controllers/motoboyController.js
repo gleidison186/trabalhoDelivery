@@ -33,10 +33,6 @@ module.exports = {
     async newMotoboy(req, res){
         const idAssociateLogin = req.associateId;
 
-        if(!idAssociateLogin){
-            return res.status(400).json({ msg: "Usuário sem permissão" });
-        }
-
         const { name, cpf, password, phone } = req.body;
         if (!name || !cpf || !password) {
             return res.status(400).json({ msg: "Dados obrigatórios não foram preenchidos." })
@@ -79,10 +75,6 @@ module.exports = {
     async listAllMotoboy(req, res){
         const idAssociateLogin = req.associateId;
 
-        if(!idAssociateLogin){
-            return res.status(400).json({ msg: "Usuário sem permissão" });
-        }
-
         const motoboys = await Motoboy.findAll({
             where: { associateId: idAssociateLogin }
         }).catch((error) => {
@@ -101,10 +93,6 @@ module.exports = {
 
     async searchMotoboy(req, res){
         const idAssociateLogin = req.associateId;
-
-        if(!idAssociateLogin){
-            return res.status(400).json({ msg: "Usuário sem permissão" });
-        }
 
         const motoboyCPF = req.params.cpf;
         if (!motoboyCPF || motoboyCPF === "") {
@@ -127,10 +115,6 @@ module.exports = {
 
     async updateMotoboy(req, res){
         const idAssociateLogin = req.associateId;
-
-        if(!idAssociateLogin){
-            return res.status(400).json({ msg: "Usuário sem permissão" });
-        }
 
         const motoboy = req.body;
         const idMotoboyAlterado = req.params.id
@@ -176,12 +160,6 @@ module.exports = {
     async deleteMotoboy(req, res){
         const idAssociateLogin = req.associateId;
 
-        if(!idAssociateLogin){
-            return res.status(400).json({ msg: "Usuário sem permissão" });
-        }
-        
-        const { Op } = require("sequelize");
-
         const motoboyId = req.params.id;
 
         const motoboy = await Delivery.findOne({
@@ -191,24 +169,6 @@ module.exports = {
         });
 
         if(motoboy.associateId == idAssociateLogin){
-            const motoboyDeliveries = await Delivery.findAll({
-                where: {
-                    [Op.and]: [{ associateId: idAssociateLogin }, { motoboyId: motoboy.id }]
-                }
-            }).catch((error) => {
-                return res.status(500).json({ msg: "Falha na conexão " + error });
-            });
-    
-            let deliveries = [];
-    
-            for(var key in motoboyDeliveries){
-                deliveries.push(motoboyDeliveries[key].id);
-            }
-    
-            const deletedDeliveries = await Delivery.destroy({
-                where: { id: deliveries },
-            });
-    
             const deletedMotoboy = await Motoboy.destroy({
                 where: { id: motoboyId, associateId: idAssociateLogin },
             }).catch((error) => {
@@ -229,10 +189,6 @@ module.exports = {
     // Lista de suas entregas realizadas
     async deliveriesMade(req, res){
         const idMotoboyLogin = req.motoboyId;
-
-        if(!idMotoboyLogin){
-            return res.status(400).json({ msg: "Usuário sem permissão" });
-        }
 
         const { Op } = require("sequelize");
         const deliveries = await Delivery.findAll({
@@ -256,12 +212,6 @@ module.exports = {
     // Lista de suas entregas pendentes
     async pendingDeliveries(req, res){
         const idMotoboyLogin = req.motoboyId;
-
-        console.log(idMotoboyLogin);
-
-        if(!idMotoboyLogin){
-            return res.status(400).json({ msg: "Usuário sem permissão" });
-        }
 
         const { Op } = require("sequelize");
         const deliveries = await Delivery.findAll({
@@ -291,6 +241,6 @@ module.exports = {
             [Op.and]: [{ motoboyId: req.motoboyId }, { status: "Realizada" }]
         })
         const motoboyValue = totalValue * 0.7;
-        return res.status(200).json({ "Valor total das entregas realizadas": totalValue, "Valor a ser pago ao motoboy (70%)": motoboyValue});
+        return res.status(200).json({ "ValorTotal": totalValue, "ValorMotoboy": motoboyValue});
     }
 }
