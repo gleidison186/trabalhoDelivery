@@ -103,9 +103,8 @@ module.exports = {
     },
 
     async updateAssociate(req, res) {
-        const associateId = req.associateId;
         const associate = req.body;
-        const associateExists = await Associate.findByPk(associateId);
+        const associateExists = await Associate.findByPk(associate.id);
         if (!associateExists) {
             return res.status(400).json({ msg: "Associado não encontrado" });
         } else {
@@ -129,7 +128,7 @@ module.exports = {
             }
             if (associate.name || associate.cnpj || associate.password || associate.address) {
                 await Associate.update(associate, {
-                    where: { id: associateId }
+                    where: { id: associate.id }
                 })
                 return res.status(200).json({ msg: "Associado atualizado com sucesso" });
             } else {

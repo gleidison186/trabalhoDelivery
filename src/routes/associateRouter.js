@@ -7,13 +7,13 @@ associateRouter.post("/authentication", associateController.authentication);
 
 associateRouter.post("/newAssociate", associateController.newAssociate);
 
-associateRouter.get("/listAllAssociate", auth, associateController.listAllAssociate);
+associateRouter.get("/listAllAssociate", associateController.listAllAssociate);
 
 associateRouter.get("/searchAssociate/:cnpj", associateController.searchAssociate);
 
-associateRouter.put("/updateAssociate", auth, associateController.updateAssociate);
+associateRouter.put("/updateAssociate", associateController.updateAssociate);
 
-associateRouter.delete("/deleteAssociate/:id", auth, associateController.deleteAssociate);
+associateRouter.delete("/deleteAssociate/:id", associateController.deleteAssociate);
 
 associateRouter.get("/generalReport", auth, associateController.generalReport);
 
