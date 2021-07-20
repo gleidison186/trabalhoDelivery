@@ -17,5 +17,4 @@ Projeto Disciplina DS870
 
 ## Observações
 
-- Para usar o CRUD dos Associados é necessário ter nos headers o seguinte valor
-    `user` = `ACP`
+- Para usar o CRUD dos Associados é necessário ter nos headers o seguinte valor `user` = `ACP`
