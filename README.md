@@ -14,3 +14,8 @@ Projeto Disciplina DS870
 - Executar o comando `npx sequelize db:create`
 - Executar o comando `npx sequelize db:migrate`
 - Executar o comando `npx sequelize db:seed:all`
+
+## Observações
+
+- Para usar o CRUD dos Associados é necessário ter nos headers o seguinte valor
+    `user` = `ACP`
